@@ -94,8 +94,30 @@ spec:
         }
 
         // ── Lab 1: PR / Git Diff Review ──────────────────────────
-        //    Add a stage here that runs Bob in a "senior developer"
-        //    mode against the git diff. See labs/lab1/PR_REVIEW.md.
+        stage('PR Review') {
+            steps {
+                echo "=== Computing PR diff ==="
+                sh '''
+                    git fetch origin main --quiet
+                    git diff origin/main...HEAD > git-diff.txt
+                    echo "Diff size: $(wc -l < git-diff.txt) lines"
+                '''
+
+                echo "=== Running Bob PR review ==="
+                script {
+                    def prompt = """Please read the file git-diff.txt in the workspace and produce a risk-oriented overview of this pull request diff using the pipeline-git-diff-overview mode. Cover: what changed, risk level (High/Medium/Low), and what to watch for."""
+                    def analysis = askBob(prompt, 'pipeline-git-diff-overview')
+                    writeFile file: 'bob-pr-review.md', text: analysis
+                    echo "════════════════════════════════════════"
+                    echo "Bob PR Review"
+                    echo "════════════════════════════════════════"
+                    echo analysis
+                    echo "════════════════════════════════════════"
+                }
+
+                archiveArtifacts artifacts: 'bob-pr-review.md', allowEmptyArchive: true
+            }
+        }
 
         // ── Lab 2: Unit Testing ──────────────────────────────────
         //    Add a mvn test stage + Bob test-failure analysis.
